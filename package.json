@@ -1,0 +1,34 @@
+{
+  "name": "angular-moment-datetime",
+  "version": "1.0.0",
+  "description": "Basic moment date/time pickers for Angular.js",
+  "homepage": "http://github.com/Accedo-Products/angular-moment-datetime",
+  "main": "dist/index.js",
+  "bugs": {
+    "url": "http://github.com/Accedo-Products/angular-moment-datetime/issues"
+  },
+  "authors": [
+    {
+      "name": "AppGrid",
+      "email": "appgrid@accedo.tv"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/Accedo-Products/angular-moment-datetime"
+  },
+  "scripts": {
+    "build": "node scripts/compile.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "angular": "1.4.x",
+    "babel-core": "^6.4.5",
+    "babel-preset-es2015": "^6.1.2",
+    "less": "^2.7.1"
+  },
+  "dependencies": {
+    "moment": "^2.12.0",
+    "moment-timezone": "^0.5.1"
+  }
+}

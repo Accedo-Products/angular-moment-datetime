@@ -93,7 +93,10 @@ function timePicker($log, $compile, $filter, $document, $timeout) {
                     }
 
                     localMoment = localMoment.clone().tz(newVal);
-                    scope.model = localMoment.clone();
+                    if (scope.model) {
+                        scope.model = localMoment.clone();
+                        ngModelController.$setDirty();
+                    }
                 });
 
                 scope.$on('$destroy', function () {
@@ -126,6 +129,10 @@ function timePicker($log, $compile, $filter, $document, $timeout) {
         // Convert data from model to view format and validate
         ngModelController.$formatters.push(function timeMomentFormatter(modelMoment) {
 
+            if (!modelMoment) {
+                return "";
+            }
+
             var isValid = moment.isMoment(modelMoment);
 
             ngModelController.$setValidity("time", !modelMoment || isValid);
@@ -133,9 +140,12 @@ function timePicker($log, $compile, $filter, $document, $timeout) {
             if (isValid) {
 
                 localMoment = localMoment.set({
-                    'date': modelMoment.date(),
                     'year': modelMoment.year(),
-                    'month': modelMoment.month()
+                    'month': modelMoment.month(),
+                    'date': modelMoment.date(),
+                    'hours': modelMoment.hours(),
+                    'minutes': modelMoment.minutes(),
+                    'seconds': modelMoment.seconds()
                 }).clone();
             }
 
@@ -147,9 +157,11 @@ function timePicker($log, $compile, $filter, $document, $timeout) {
             scope.times = [];
             scope.showTimepicker = false;
 
-            var interval = attrs.pickerInterval ? parseInt(attrs.pickerInterval, 10) : 60;
+            var interval = attrs.pickerInterval ?
+                           parseInt(attrs.pickerInterval, 10) :
+                           60;
 
-            var workingTime, minute, formattedTime;
+            var workingTime, minute;
 
             // Build array of time objects by interval
             for (var i = 0; i < 24; i++) {
@@ -181,7 +193,12 @@ function timePicker($log, $compile, $filter, $document, $timeout) {
         };
 
         // Build picker template and register with the directive scope
-        var template = angular.element('<ol class="v-time-picker" data-ng-show="showTimepicker">' + '<li data-ng-repeat="time in times" data-ng-click="applyTime( time )">' + "{{ time.display }}" + "</li>" + "</ol>");
+        var template = angular.element('<ol class="v-time-picker" data-ng-show="showTimepicker">' +
+                '<li data-ng-repeat="time in times" data-ng-click="applyTime( time )">' +
+                    "{{ time.display }}" +
+                "</li>" +
+            "</ol>"
+        );
 
         // TODO why compile all the time (in linkFn)?
         $compile(template)(scope);

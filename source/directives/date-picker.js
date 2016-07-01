@@ -139,7 +139,9 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
 
         function isToday(year, month, day) {
 
-            return scope.dayNow === day && scope.monthNow === month && scope.yearNow === year;
+            return scope.dayNow === day &&
+                   scope.monthNow === month &&
+                   scope.yearNow === year;
         }
 
         function validateAttrs() {
@@ -153,12 +155,10 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
 
             if (scope.minDate && tz) {
                 scope.minDate = scope.minDate.clone().tz(tz);
-                ngModelController.$setDirty();
             }
 
             if (scope.maxDate && tz) {
                 scope.maxDate = scope.maxDate.clone().tz(tz);
-                ngModelController.$setDirty();
             }
 
             return {
@@ -169,7 +169,8 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
 
         function getTimezone() {
 
-            return scope.timezone || moment.tz.guess();
+            return scope.timezone ||
+                   moment.tz.guess();
         }
 
         function watchAttrs() {
@@ -188,18 +189,21 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
                     defineNow();
 
                     localMoment = localMoment.clone().tz(newVal);
-                    scope.model = localMoment.clone();
+                    if (scope.model) {
+                        scope.model = localMoment.clone();
+                        ngModelController.$setDirty();
+                    }
 
                     ngModelController.$setValidity("minDate", validateMin(scope.model, getMinDate()));
                     ngModelController.$setValidity("maxDate", validateMax(scope.model, getMaxDate()));
                 }));
             }
 
-            unwatchers.push(scope.$watch("minDate", function (newMinDate, oldVal) {
+            unwatchers.push(scope.$watch("minDate", function (newMinDate) {
                 ngModelController.$setValidity("minDate", validateMin(scope.model, newMinDate));
             }));
 
-            unwatchers.push(scope.$watch("maxDate", function (newMaxDate, oldVal) {
+            unwatchers.push(scope.$watch("maxDate", function (newMaxDate) {
                 ngModelController.$setValidity("maxDate", validateMax(scope.model, newMaxDate));
             }));
 
@@ -223,9 +227,9 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
             if (isValid) {
 
                 localMoment = localMoment.set({
+                    'year': parsedMoment.year(),
                     'month': parsedMoment.month(),
-                    'date': parsedMoment.date(),
-                    'year': parsedMoment.year()
+                    'date': parsedMoment.date()
                 }).clone();
             }
 
@@ -235,15 +239,21 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
         // Convert data from model to view format and validate
         ngModelController.$formatters.push(function momentFormatter(modelMoment) {
 
+            if (!modelMoment) {
+                return "";
+            }
+
             var minMaxValid = validateMinMax(modelMoment);
             var dateIsValid = modelMoment && modelMoment.isValid();
-            var isValid = dateIsValid && minMaxValid.isValid;
 
             updateValidity(!modelMoment || dateIsValid, minMaxValid);
 
             if (dateIsValid) {
 
                 localMoment = localMoment.set({
+                    'year': modelMoment.year(),
+                    'month': modelMoment.month(),
+                    'date': modelMoment.date(),
                     'hours': modelMoment.hours(),
                     'minutes': modelMoment.minutes(),
                     'seconds': modelMoment.seconds()
@@ -265,8 +275,13 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
             var minDate = getMinDate();
             var maxDate = getMaxDate();
 
-            var minIsValid = minDate ? validateMin(currentDate, minDate) : true;
-            var maxIsValid = maxDate ? validateMax(currentDate, maxDate) : true;
+            var minIsValid = minDate ?
+                             validateMin(currentDate, minDate) :
+                             true;
+
+            var maxIsValid = maxDate ?
+                             validateMax(currentDate, maxDate) :
+                             true;
 
             return {
                 maxIsValid: maxIsValid,
@@ -277,7 +292,10 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
 
         function validateMin(currentDate, minDate) {
 
-            if (!currentDate || !currentDate.isValid() || !minDate || !minDate.isValid()) {
+            if (!currentDate ||
+                !currentDate.isValid() ||
+                !minDate ||
+                !minDate.isValid()) {
 
                 return true;
             }
@@ -287,7 +305,10 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
 
         function validateMax(currentDate, maxDate) {
 
-            if (!currentDate || !currentDate.isValid() || !maxDate || !maxDate.isValid()) {
+            if (!currentDate ||
+                !currentDate.isValid() ||
+                !maxDate ||
+                !maxDate.isValid()) {
 
                 return true;
             }
@@ -297,12 +318,16 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
 
         function getMinDate() {
 
-            return scope.minDate ? scope.minDate.clone() : undefined;
+            return scope.minDate ?
+                   scope.minDate.clone() :
+                   undefined;
         }
 
         function getMaxDate() {
 
-            return scope.maxDate ? scope.maxDate.clone() : undefined;
+            return scope.maxDate ?
+                   scope.maxDate.clone() :
+                   undefined;
         }
 
         // Build a month of days based on the date passed in
@@ -349,7 +374,9 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
                 var disabled = !validateMax(day, max) ||
                                !validateMin(day, min);
 
-                var selected = scope.model ? scope.model.isSame(day, 'day') : false;
+                var selected = scope.model ?
+                               scope.model.isSame(day, 'day') :
+                               false;
 
                 scope.days.push({
                     'number': i,
@@ -398,7 +425,21 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
         };
 
         // Build picker template and register with the directive scope
-        var template = angular.element('<div class="v-date-picker" data-ng-show="showDatepicker">' + '<div class="month-name">{{ monthName }} {{ year }}</div>' + '<div class="month-prev" data-ng-click="buildMonth( prevYear, prevMonth )">&lt;</div>' + '<div class="month-next" data-ng-click="buildMonth( nextYear, nextMonth )">&gt;</div>' + '<div class="day-name-cell" data-ng-repeat="dayName in dayNames">{{ dayName }}</div>' + '<div class="filler-space" data-ng-repeat="space in filler"></div>' + '<div class="date-cell" ' + 'data-ng-class="day.class" ' + 'data-ng-disabled="day.disabled" ' + 'data-ng-repeat="day in days" data-ng-click="applyDate( month, day, year )">' + '{{ day.number }}' + '</div>' + '</div>');
+        var template = angular.element('<div class="v-date-picker" data-ng-show="showDatepicker">' +
+            '<div class="month-name">{{ monthName }} {{ year }}</div>' +
+            '<div class="month-prev" data-ng-click="buildMonth( prevYear, prevMonth )">&lt;</div>' +
+            '<div class="month-next" data-ng-click="buildMonth( nextYear, nextMonth )">&gt;</div>' +
+            '<div class="day-name-cell" data-ng-repeat="dayName in dayNames">{{ dayName }}</div>' +
+            '<div class="filler-space" data-ng-repeat="space in filler"></div>' +
+                '<div class="date-cell" ' +
+                     'data-ng-class="day.class" ' +
+                     'data-ng-disabled="day.disabled" ' +
+                     'data-ng-repeat="day in days" ' +
+                     'data-ng-click="applyDate( month, day, year )">' +
+                    '{{ day.number }}' +
+                '</div>' +
+            '</div>'
+        );
 
         // TODO why compile all the time (in linkFn)?
         $compile(template)(scope);

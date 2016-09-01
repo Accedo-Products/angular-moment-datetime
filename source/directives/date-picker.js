@@ -9,7 +9,6 @@ angular
 datePicker.$inject = [
     '$log',
     '$compile',
-    '$filter',
     '$document',
     '$timeout'
 ];
@@ -25,7 +24,7 @@ datePicker.$inject = [
  * If it is not passed the moment is considered to be at a "guessed"
  * timezone. This means the browsers timezone is used.
  */
-function datePicker($log, $compile, $filter, $document, $timeout) {
+function datePicker($log, $compile, $document, $timeout) {
 
     var directive = {
         restrict: "A",
@@ -33,7 +32,8 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
             model: "=ngModel",
             timezone: "=",
             minDate: "=",
-            maxDate: "="
+            maxDate: "=",
+            onChangeCallback: '&?'
         },
         require: "ngModel",
         link: linkFn
@@ -173,6 +173,18 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
                    moment.tz.guess();
         }
 
+        function updateModal(value) {
+
+            scope.model = value.clone();
+            ngModelController.$setDirty();
+
+            $timeout(function() {
+                scope.onChangeCallback({
+                    'model': scope.model
+                });
+            }, 0, false);
+        }
+
         function watchAttrs() {
 
             var unwatchers = [];
@@ -190,8 +202,7 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
 
                     localMoment = localMoment.clone().tz(newVal);
                     if (scope.model) {
-                        scope.model = localMoment.clone();
-                        ngModelController.$setDirty();
+                        updateModal(localMoment);
                     }
 
                     ngModelController.$setValidity("minDate", validateMin(scope.model, getMinDate()));
@@ -414,13 +425,11 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
             }
 
             // This assignment will trigger the formatter function
-            scope.model = localMoment.set({
+            updateModal(localMoment.set({
                 'month': month,
                 'date': day.number,
                 'year': year
-            }).clone();
-
-            ngModelController.$setDirty();
+            }));
             hidePicker();
         };
 

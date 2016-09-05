@@ -173,7 +173,7 @@ function datePicker($log, $compile, $document, $timeout) {
                    moment.tz.guess();
         }
 
-        function updateModal(value) {
+        function updateModel(value) {
 
             scope.model = value.clone();
             ngModelController.$setDirty();
@@ -190,11 +190,7 @@ function datePicker($log, $compile, $document, $timeout) {
             var unwatchers = [];
 
             if (attrs.timezone) {
-                unwatchers.push(scope.$watch("timezone", function (newVal, oldVal) {
-
-                    if (angular.equals(newVal, oldVal)) {
-                        return;
-                    }
+                unwatchers.push(scope.$watch("timezone", function (newVal) {
 
                     // tz dependent stuff needs to update!
                     updateMinMaxTimezone(newVal);
@@ -202,7 +198,7 @@ function datePicker($log, $compile, $document, $timeout) {
 
                     localMoment = localMoment.clone().tz(newVal);
                     if (scope.model) {
-                        updateModal(localMoment);
+                        updateModel(localMoment);
                     }
 
                     ngModelController.$setValidity("minDate", validateMin(scope.model, getMinDate()));
@@ -425,7 +421,7 @@ function datePicker($log, $compile, $document, $timeout) {
             }
 
             // This assignment will trigger the formatter function
-            updateModal(localMoment.set({
+            updateModel(localMoment.set({
                 'month': month,
                 'date': day.number,
                 'year': year

@@ -4,7 +4,7 @@
 
 angular.module('vokal.datePicker', []).directive('datePicker', datePicker);
 
-datePicker.$inject = ['$log', '$compile', '$filter', '$document', '$timeout'];
+datePicker.$inject = ['$log', '$compile', '$document', '$timeout'];
 
 /**
  * *indata*
@@ -17,7 +17,7 @@ datePicker.$inject = ['$log', '$compile', '$filter', '$document', '$timeout'];
  * If it is not passed the moment is considered to be at a "guessed"
  * timezone. This means the browsers timezone is used.
  */
-function datePicker($log, $compile, $filter, $document, $timeout) {
+function datePicker($log, $compile, $document, $timeout) {
 
     var directive = {
         restrict: "A",
@@ -25,7 +25,8 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
             model: "=ngModel",
             timezone: "=",
             minDate: "=",
-            maxDate: "="
+            maxDate: "=",
+            onChangeCallback: '&?'
         },
         require: "ngModel",
         link: linkFn
@@ -143,12 +144,10 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
 
             if (scope.minDate && tz) {
                 scope.minDate = scope.minDate.clone().tz(tz);
-                ngModelController.$setDirty();
             }
 
             if (scope.maxDate && tz) {
                 scope.maxDate = scope.maxDate.clone().tz(tz);
-                ngModelController.$setDirty();
             }
 
             return {
@@ -162,34 +161,44 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
             return scope.timezone || moment.tz.guess();
         }
 
+        function updateModel(value) {
+
+            scope.model = value.clone();
+            ngModelController.$setDirty();
+
+            $timeout(function () {
+                scope.onChangeCallback({
+                    'model': scope.model
+                });
+            }, 0, false);
+        }
+
         function watchAttrs() {
 
             var unwatchers = [];
 
             if (attrs.timezone) {
-                unwatchers.push(scope.$watch("timezone", function (newVal, oldVal) {
-
-                    if (angular.equals(newVal, oldVal)) {
-                        return;
-                    }
+                unwatchers.push(scope.$watch("timezone", function (newVal) {
 
                     // tz dependent stuff needs to update!
                     updateMinMaxTimezone(newVal);
                     defineNow();
 
                     localMoment = localMoment.clone().tz(newVal);
-                    scope.model = localMoment.clone();
+                    if (scope.model) {
+                        updateModel(localMoment);
+                    }
 
                     ngModelController.$setValidity("minDate", validateMin(scope.model, getMinDate()));
                     ngModelController.$setValidity("maxDate", validateMax(scope.model, getMaxDate()));
                 }));
             }
 
-            unwatchers.push(scope.$watch("minDate", function (newMinDate, oldVal) {
+            unwatchers.push(scope.$watch("minDate", function (newMinDate) {
                 ngModelController.$setValidity("minDate", validateMin(scope.model, newMinDate));
             }));
 
-            unwatchers.push(scope.$watch("maxDate", function (newMaxDate, oldVal) {
+            unwatchers.push(scope.$watch("maxDate", function (newMaxDate) {
                 ngModelController.$setValidity("maxDate", validateMax(scope.model, newMaxDate));
             }));
 
@@ -213,9 +222,9 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
             if (isValid) {
 
                 localMoment = localMoment.set({
+                    'year': parsedMoment.year(),
                     'month': parsedMoment.month(),
-                    'date': parsedMoment.date(),
-                    'year': parsedMoment.year()
+                    'date': parsedMoment.date()
                 }).clone();
             }
 
@@ -225,15 +234,21 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
         // Convert data from model to view format and validate
         ngModelController.$formatters.push(function momentFormatter(modelMoment) {
 
+            if (!modelMoment) {
+                return "";
+            }
+
             var minMaxValid = validateMinMax(modelMoment);
             var dateIsValid = modelMoment && modelMoment.isValid();
-            var isValid = dateIsValid && minMaxValid.isValid;
 
             updateValidity(!modelMoment || dateIsValid, minMaxValid);
 
             if (dateIsValid) {
 
                 localMoment = localMoment.set({
+                    'year': modelMoment.year(),
+                    'month': modelMoment.month(),
+                    'date': modelMoment.date(),
                     'hours': modelMoment.hours(),
                     'minutes': modelMoment.minutes(),
                     'seconds': modelMoment.seconds()
@@ -256,6 +271,7 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
             var maxDate = getMaxDate();
 
             var minIsValid = minDate ? validateMin(currentDate, minDate) : true;
+
             var maxIsValid = maxDate ? validateMax(currentDate, maxDate) : true;
 
             return {
@@ -372,18 +388,16 @@ function datePicker($log, $compile, $filter, $document, $timeout) {
             }
 
             // This assignment will trigger the formatter function
-            scope.model = localMoment.set({
+            updateModel(localMoment.set({
                 'month': month,
                 'date': day.number,
                 'year': year
-            }).clone();
-
-            ngModelController.$setDirty();
+            }));
             hidePicker();
         };
 
         // Build picker template and register with the directive scope
-        var template = angular.element('<div class="v-date-picker" data-ng-show="showDatepicker">' + '<div class="month-name">{{ monthName }} {{ year }}</div>' + '<div class="month-prev" data-ng-click="buildMonth( prevYear, prevMonth )">&lt;</div>' + '<div class="month-next" data-ng-click="buildMonth( nextYear, nextMonth )">&gt;</div>' + '<div class="day-name-cell" data-ng-repeat="dayName in dayNames">{{ dayName }}</div>' + '<div class="filler-space" data-ng-repeat="space in filler"></div>' + '<div class="date-cell" ' + 'data-ng-class="day.class" ' + 'data-ng-disabled="day.disabled" ' + 'data-ng-repeat="day in days" data-ng-click="applyDate( month, day, year )">' + '{{ day.number }}' + '</div>' + '</div>');
+        var template = angular.element('<div class="v-date-picker" data-ng-show="showDatepicker">' + '<div class="month-name">{{ monthName }} {{ year }}</div>' + '<div class="month-prev" data-ng-click="buildMonth( prevYear, prevMonth )">&lt;</div>' + '<div class="month-next" data-ng-click="buildMonth( nextYear, nextMonth )">&gt;</div>' + '<div class="day-name-cell" data-ng-repeat="dayName in dayNames">{{ dayName }}</div>' + '<div class="filler-space" data-ng-repeat="space in filler"></div>' + '<div class="date-cell" ' + 'data-ng-class="day.class" ' + 'data-ng-disabled="day.disabled" ' + 'data-ng-repeat="day in days" ' + 'data-ng-click="applyDate( month, day, year )">' + '{{ day.number }}' + '</div>' + '</div>');
 
         // TODO why compile all the time (in linkFn)?
         $compile(template)(scope);

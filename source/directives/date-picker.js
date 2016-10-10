@@ -33,12 +33,18 @@ function datePicker($log, $compile, $document, $timeout) {
             timezone: "=",
             minDate: "=",
             maxDate: "=",
+            timeResolution: "=?",
             onChangeCallback: '&?'
         },
         require: "ngModel",
         link: linkFn
     };
 
+    var supportedTimeResolutions = {
+        DAILY: 'DAILY',
+        WEEKLY: 'WEEKLY',
+        MONTHLY: 'MONTHLY'
+    };
     var firstDayOfWeek = moment().startOf('isoWeek').day();
     var defaultFormat = 'M/D/YYYY';
     var dayFormat = 'ddd';
@@ -358,6 +364,8 @@ function datePicker($log, $compile, $document, $timeout) {
 
             var timezone = getTimezone();
             var daysInMonth = m.daysInMonth();
+            var startRange = getBoundaryDateByTimeResolution(scope.model, 'startOf');
+            var endRange = getBoundaryDateByTimeResolution(scope.model, 'endOf');
 
             for (var i = 1; i <= daysInMonth; i++) {
 
@@ -385,13 +393,16 @@ function datePicker($log, $compile, $document, $timeout) {
                                scope.model.isSame(day, 'day') :
                                false;
 
+               var inRange = day.isBetween(startRange, endRange) && !day.isAfter(max);
+
                 scope.days.push({
+                    'day': day,
                     'number': i,
                     'disabled': disabled,
                     'class': {
                         'today': isToday(year, month, i),
                         'disabled': disabled,
-                        'selected': selected
+                        'selected': selected || inRange
                     }
                 });
             }
@@ -401,6 +412,19 @@ function datePicker($log, $compile, $document, $timeout) {
                 scope.filler.push(k);
             }
         };
+
+        function getBoundaryDateByTimeResolution(date, invokedMethod) {
+
+            var d = moment(date);
+            switch (scope.timeResolution) {
+                case supportedTimeResolutions.MONTHLY:
+                    return d[invokedMethod]('month');
+                case supportedTimeResolutions.WEEKLY:
+                    return d[invokedMethod]('isoweek');
+                case supportedTimeResolutions.DAILY:
+                    return d[invokedMethod]('day');
+            }
+        }
 
         // Adjust for first day of week setting
         function getFillerCount(weekDayOfFirstDayOfMonth) {
@@ -414,19 +438,50 @@ function datePicker($log, $compile, $document, $timeout) {
         // place, such as the timepicker, then we can not simply maintain it
 
         // Function to put selected date in the scope
-        scope.applyDate = function (month, day, year) {
+        scope.applyDate = function (day) {
 
             if (day.disabled) {
                 return;
             }
 
-            // This assignment will trigger the formatter function
-            updateModel(localMoment.set({
-                'month': month,
-                'date': day.number,
-                'year': year
-            }));
+            // If timeResolution is defined, we want the first day of that period
+            if (scope.timeResolution) {
+
+                var firstDayOfResolution = getBoundaryDateByTimeResolution(day.day, 'startOf');
+                // This assignment will trigger the formatter function
+                updateModel(localMoment.set({
+                    'month': firstDayOfResolution.month(),
+                    'date': firstDayOfResolution.date(),
+                    'year': firstDayOfResolution.year()
+                }));
+            }
+            else {
+                // This assignment will trigger the formatter function
+                updateModel(localMoment.set({
+                    'month': day.day.month(),
+                    'date': day.number,
+                    'year': day.day.year()
+                }));
+            }
+
             hidePicker();
+        };
+
+        scope.showRangeByTimeResolution = function(hoveredDay, days) {
+
+            if (!scope.timeResolution) {
+                return;
+            }
+
+            var startRange = getBoundaryDateByTimeResolution(hoveredDay.day, 'startOf');
+            var endRange = getBoundaryDateByTimeResolution(hoveredDay.day, 'endOf');
+            var max = getMaxDate() ? getMaxDate().endOf('day') : undefined;
+
+            days.forEach(function(dayObj) {
+
+                var inRange = dayObj.day.isBetween(startRange, endRange) && !dayObj.day.isAfter(max);
+                dayObj.class['in-range-hovered'] = inRange;
+            });
         };
 
         // Build picker template and register with the directive scope
@@ -439,8 +494,9 @@ function datePicker($log, $compile, $document, $timeout) {
                 '<div class="date-cell" ' +
                      'data-ng-class="day.class" ' +
                      'data-ng-disabled="day.disabled" ' +
+                     'ng-mouseenter="showRangeByTimeResolution(day, days)"' +
                      'data-ng-repeat="day in days" ' +
-                     'data-ng-click="applyDate( month, day, year )">' +
+                     'data-ng-click="applyDate(day)">' +
                     '{{ day.number }}' +
                 '</div>' +
             '</div>'

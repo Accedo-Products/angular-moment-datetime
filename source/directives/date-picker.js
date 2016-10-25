@@ -313,7 +313,7 @@ function datePicker($log, $compile, $document, $timeout) {
                 return true;
             }
 
-            return currentDate.isSameOrAfter(minDate, 'second');
+            return currentDate.isSameOrAfter(minDate, 'day');
         }
 
         function validateMax(currentDate, maxDate) {
@@ -326,7 +326,7 @@ function datePicker($log, $compile, $document, $timeout) {
                 return true;
             }
 
-            return currentDate.isSameOrBefore(maxDate, 'second');
+            return currentDate.isSameOrBefore(maxDate, 'day');
         }
 
         function getMinDate() {

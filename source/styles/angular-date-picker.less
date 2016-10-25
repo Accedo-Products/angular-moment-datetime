@@ -40,7 +40,7 @@
     }
 
     .month-next {
-        left: auto; 
+        left: auto;
         right: 3px;
         padding: 3px 10px 3px 15px;
     }
@@ -79,8 +79,12 @@
         }
 
         &.selected {
-            background-color: @selected-day-bg-color;
+            background-color: @selected-day-bg-color !important;
             color: @selected-day-color;
+        }
+
+        &.in-range-hovered {
+            background-color: lighten(@date-cell-hover, 2%);
         }
 
         &.disabled {

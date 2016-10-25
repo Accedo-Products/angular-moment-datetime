@@ -438,31 +438,20 @@ function datePicker($log, $compile, $document, $timeout) {
         // place, such as the timepicker, then we can not simply maintain it
 
         // Function to put selected date in the scope
-        scope.applyDate = function (day) {
+        scope.applyDate = function (dayObj) {
 
-            if (day.disabled) {
+            if (dayObj.disabled) {
                 return;
             }
 
             // If timeResolution is defined, we want the first day of that period
-            if (scope.timeResolution) {
+            var firstDayOfResolution = scope.timeResolution ? getBoundaryDateByTimeResolution(dayObj.day, 'startOf') : dayObj.day;
 
-                var firstDayOfResolution = getBoundaryDateByTimeResolution(day.day, 'startOf');
-                // This assignment will trigger the formatter function
-                updateModel(localMoment.set({
-                    'month': firstDayOfResolution.month(),
-                    'date': firstDayOfResolution.date(),
-                    'year': firstDayOfResolution.year()
-                }));
-            }
-            else {
-                // This assignment will trigger the formatter function
-                updateModel(localMoment.set({
-                    'month': day.day.month(),
-                    'date': day.number,
-                    'year': day.day.year()
-                }));
-            }
+            updateModel(localMoment.set({
+                'month': firstDayOfResolution.month(),
+                'date': firstDayOfResolution.date(),
+                'year': firstDayOfResolution.year()
+            }));
 
             hidePicker();
         };

@@ -238,12 +238,7 @@ function datePicker($log, $compile, $document, $timeout) {
             updateValidity(!str || parsedMoment.isValid(), minMaxValid);
 
             if (isValid) {
-
-                localMoment = localMoment.set({
-                    'year': parsedMoment.year(),
-                    'month': parsedMoment.month(),
-                    'date': parsedMoment.date()
-                }).clone();
+                scope.applyDate({'day': parsedMoment});
             }
 
             return localMoment;
